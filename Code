@@ -1,0 +1,59 @@
+#define TRIGGER 5 //D1 pin
+#define ECHO 4 //D2
+#define KEY 13 //D7 Controlled using blynk
+#define RELAY 0 //D3
+ 
+#include <ESP8266WiFi.h>
+#include <BlynkSimpleEsp8266.h>
+#include <Blynk.h>
+char auth[] = " Enter the blynk auth id";
+char ssid[] = "Enter your Wifi name here";
+char pass[] = "Enter Wifi password here";
+
+void setup() {
+  Serial.begin (9600); //this command begins serial monitor
+  Blynk.begin(auth, ssid, pass); //Connects to blynk server
+  pinMode(TRIGGER, OUTPUT);
+  pinMode(ECHO, INPUT);
+  pinMode(KEY,INPUT);
+  pinMode(BUILTIN_LED, OUTPUT);
+}
+int maximumRange = 30; //depth of the tank
+float v; //volume
+int actual_height; //actual height of water from bottom of the tank 
+int r = 53.2; //radius of the tank
+int cap;//Capacity in Liters
+WidgetLED led3(V3);//creates a object of widgetLED class 
+
+void loop() {
+  Blynk.run(); //Begins to send and receive data from blynk server
+  if(digitalRead(KEY)){
+  long duration, distance;
+  digitalWrite(TRIGGER, LOW);  
+  delayMicroseconds(2); 
+  digitalWrite(TRIGGER, HIGH);
+  delayMicroseconds(10); 
+  digitalWrite(TRIGGER, LOW);
+  duration = pulseIn(ECHO, HIGH); //return time taken by the wave to reach back */
+  distance= duration*0.034/2 //distance is calculated using speed=dis/time formula  speed of sound 340m/s */
+  Serial.print("Centimeter:"); //prints value in serial monitor
+  Serial.println("distance");
+  v = ((3.14*(r*r))*(maximumRange-distance));//volume calculated using v=pi*(r^2)*h */
+  cap = v/1000; //converting  into liters
+  Blynk.virtualWrite(V5, cap); //returns cap to blynk server
+  if(distance>=25){ //checks if the water level is low
+      digitalWrite(BUILTIN_LED,LOW);
+      digitalWrite(RELAY,HIGH); //turns on motor by triggering
+      led3.on();
+Serial.println("low water");
+      }
+    if(distance<=5){ //checks if the tanks filled
+      digitalWrite(BUILTIN_LED,HIGH);
+      digitalWrite(RELAY,LOW); //turns off motor 
+      led3.off();
+      Serial.println("FULL");
+      }
+  delay(1000);}//delays 1second 
+Else{
+digitalWrite(RELAY,LOW);led3.off();} /*keeps the motor off if the user turns off the system from blynk */
+}
